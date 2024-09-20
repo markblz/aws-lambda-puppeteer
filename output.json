@@ -1,1 +1,1 @@
-{"statusCode":500,"body":"{\"error\":\"Scraping process failed\",\"message\":\"No element found for selector: input[formcontrolname=\\\"dataPublicacao\\\"]\"}"}
+{"errorType":"Runtime.HandlerNotFound","errorMessage":"app.lambdaHandler is undefined or not exported","trace":["Runtime.HandlerNotFound: app.lambdaHandler is undefined or not exported","    at UserFunction.js.module.exports.load (file:///var/runtime/index.mjs:1122:15)","    at async start (file:///var/runtime/index.mjs:1282:23)","    at async file:///var/runtime/index.mjs:1288:1"]}

@@ -98,11 +98,46 @@ exports.lambdaHandler = async (event, context) => {
                     'textoPublicacao': { S: item.textoPublicacao },
                     'fontePublicacao': { S: JSON.stringify(item.fontePublicacao) },
                     'id': { N: item.id.toString() },
-                    // Add other attributes as needed
+
+                    // Add additional fields with null checks
+                    'tribunalSigla': item.decisao?.usuario?.instancia?.tribunal?.sigla ? 
+                                    { S: item.decisao.usuario.instancia.tribunal.sigla } : 
+                                    { NULL: true },
+                    
+                    'tipoDecisao': item.decisao?.tipoDecisao?.nome ? 
+                                  { S: item.decisao.tipoDecisao.nome } : 
+                                  { NULL: true },
+                    
+                    'partes': {
+                      L: item.decisao?.partes?.map(parte => ({
+                        M: {
+                          'nomeParte': parte.nome ? 
+                                      { S: parte.nome } : 
+                                      { NULL: true },
+                          
+                          'advogados': {
+                            L: parte.advogados?.map(adv => ({
+                              M: {
+                                'nomeAdvogado': adv.nome ? 
+                                                { S: adv.nome } : 
+                                                { NULL: true },
+                                
+                                'numeroOAB': adv.numero ? 
+                                            { S: adv.numero } : 
+                                            { NULL: true },
+                                
+                                'ufSigla': adv.uf?.sigla ? 
+                                          { S: adv.uf.sigla } : 
+                                          { NULL: true }
+                              }
+                            })) || [] // Return empty list if no advogados
+                          }
+                        }
+                      })) || [] // Return empty list if no partes
+                    }
                   },
                   ConditionExpression: 'attribute_not_exists(numeroPublicacao)',
                 };
-
                 try {
                   await dynamoClient.send(new PutItemCommand(putItemParams));
                   console.log(`Added new item with numeroPublicacao: ${uniqueId} to DynamoDB.`);

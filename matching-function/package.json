@@ -1,13 +1,17 @@
 {
   "name": "matching-function",
   "version": "1.0.0",
+  "description": "Lambda function for matching publications to user preferences and sending SMS notifications.",
   "main": "index.js",
-  "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"No test specified\" && exit 0",
+    "start": "node index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.310.0",
+    "@aws-sdk/client-sns": "^3.310.0"
+  }
 }

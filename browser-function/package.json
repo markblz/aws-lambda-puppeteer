@@ -1,7 +1,7 @@
 {
-  "name": "hello_world",
+  "name": "browser-function",
   "version": "1.0.0",
-  "description": "Simple SAM template for running a Chromium browser inside AWS Lambda",
+  "description": "Lambda function for scraping web pages using Puppeteer.",
   "main": "app.js",
   "repository": "https://github.com/Sayuru99/aws-lambda-puppeteer.git",
   "author": "Sayuru De Alwis",
