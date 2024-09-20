@@ -17,7 +17,7 @@ Resources:
       Runtime: nodejs18.x  # The runtime you're using
       Architectures:
         - x86_64
-      Policies:  # Permission policies
+      Policies:
         - AWSLambdaBasicExecutionRole
         - DynamoDBCrudPolicy:
             TableName: !Ref PublicationsTable
@@ -30,6 +30,44 @@ Resources:
             Name: 'PeriodicScrape'  # Event name
             Description: 'Trigger for data collection'  # Event description
 
+  MatchingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: matching-function/  # Folder where your MatchingFunction code is located
+      Handler: index.handler  # The file index.js and the method handler
+      Runtime: nodejs18.x
+      Architectures:
+        - x86_64
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Scan
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !GetAtt UserPreferencesTable.Arn
+            - Effect: Allow
+              Action:
+                - dynamodb:DescribeStream
+                - dynamodb:GetRecords
+                - dynamodb:GetShardIterator
+                - dynamodb:ListStreams
+              Resource: !GetAtt PublicationsTable.StreamArn
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: "*"
+      Events:
+        PublicationsTableStream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt PublicationsTable.StreamArn
+            StartingPosition: LATEST
+            BatchSize: 100
+
   PublicationsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -41,12 +79,34 @@ Resources:
         - AttributeName: numeroPublicacao
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST  # On-demand billing mode
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE  # Enable DynamoDB Streams
+
+  UserPreferencesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: UserPreferences
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S  # S for String
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST  # On-demand billing mode
 
 Outputs:
   BrowserFunction:
     Description: Lambda Function ARN for BrowserFunction
     Value: !GetAtt BrowserFunction.Arn
 
+  MatchingFunction:
+    Description: Lambda Function ARN for MatchingFunction
+    Value: !GetAtt MatchingFunction.Arn
+
   PublicationsTableName:
-    Description: Name of the DynamoDB table
+    Description: Name of the DynamoDB table for publications
     Value: !Ref PublicationsTable
+
+  UserPreferencesTableName:
+    Description: Name of the DynamoDB table for user preferences
+    Value: !Ref UserPreferencesTable
