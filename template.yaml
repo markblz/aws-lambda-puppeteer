@@ -31,42 +31,42 @@ Resources:
             Description: 'Trigger for data collection'  # Event description
 
   MatchingFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: matching-function/  # Folder where your MatchingFunction code is located
-      Handler: index.handler  # The file index.js and the method handler
-      Runtime: nodejs18.x
-      Architectures:
-        - x86_64
-      Policies:
-        - AWSLambdaBasicExecutionRole
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - dynamodb:Scan
-                - dynamodb:GetItem
-                - dynamodb:Query
-              Resource: !GetAtt UserPreferencesTable.Arn
-            - Effect: Allow
-              Action:
-                - dynamodb:DescribeStream
-                - dynamodb:GetRecords
-                - dynamodb:GetShardIterator
-                - dynamodb:ListStreams
-              Resource: !GetAtt PublicationsTable.StreamArn
-            - Effect: Allow
-              Action:
-                - ses:SendEmail
-                - ses:SendRawEmail
-              Resource: "*"
-      Events:
-        PublicationsTableStream:
-          Type: DynamoDB
-          Properties:
-            Stream: !GetAtt PublicationsTable.StreamArn
-            StartingPosition: LATEST
-            BatchSize: 100
+  Type: AWS::Serverless::Function
+  Properties:
+    CodeUri: matching-function/  # Folder where your MatchingFunction code is located
+    Handler: index.handler  # The file index.js and the method handler
+    Runtime: nodejs18.x
+    Architectures:
+      - x86_64
+    Policies:
+      - AWSLambdaBasicExecutionRole
+      - Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:Scan
+              - dynamodb:GetItem
+              - dynamodb:Query
+            Resource: !GetAtt UserPreferencesTable.Arn
+          - Effect: Allow
+            Action:
+              - dynamodb:DescribeStream
+              - dynamodb:GetRecords
+              - dynamodb:GetShardIterator
+              - dynamodb:ListStreams
+            Resource: !GetAtt PublicationsTable.StreamArn
+          - Effect: Allow
+            Action:
+              - ses:SendEmail
+              - ses:SendRawEmail
+            Resource: arn:aws:ses:sa-east-1:123456789012:identity/seu-email@dominio.com
+    Events:
+      PublicationsTableStream:
+        Type: DynamoDB
+        Properties:
+          Stream: !GetAtt PublicationsTable.StreamArn
+          StartingPosition: LATEST
+          BatchSize: 100
 
   PublicationsTable:
     Type: AWS::DynamoDB::Table
