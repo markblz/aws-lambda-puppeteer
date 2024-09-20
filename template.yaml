@@ -1,29 +1,52 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Simple SAM template for running a Chromium browser inside AWS Lambda
+  SAM template for running a Chromium browser inside AWS Lambda with DynamoDB integration.
 
 Globals:
   Function:
-    Timeout: 900
+    Timeout: 900  # Maximum allowed time for AWS Lambda (15 minutes)
+    MemorySize: 2048  # Allocated memory
 
 Resources:
   BrowserFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: browser-function/
-      Handler: app.lambdaHandler
-      Runtime: nodejs18.x
+      CodeUri: browser-function/  # Folder where your Lambda function code is located
+      Handler: app.lambdaHandler  # The file app.js and the method lambdaHandler
+      Runtime: nodejs18.x  # The runtime you're using
       Architectures:
         - x86_64
-      MemorySize: 1024
+      Policies:  # Permission policies
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PublicationsTable
       Events:
         BrowserFunctionScheduledEvent:
           Type: Schedule
           Properties:
-            Schedule: rate(30 minutes)
+            Schedule: rate(10 minutes)  # Schedule to run every 10 minutes
+            Enabled: true
+            Name: 'PeriodicScrape'  # Event name
+            Description: 'Trigger for data collection'  # Event description
+
+  PublicationsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Publications
+      AttributeDefinitions:
+        - AttributeName: numeroPublicacao
+          AttributeType: N  # N for Number
+      KeySchema:
+        - AttributeName: numeroPublicacao
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST  # On-demand billing mode
 
 Outputs:
   BrowserFunction:
     Description: Lambda Function ARN for BrowserFunction
     Value: !GetAtt BrowserFunction.Arn
+
+  PublicationsTableName:
+    Description: Name of the DynamoDB table
+    Value: !Ref PublicationsTable

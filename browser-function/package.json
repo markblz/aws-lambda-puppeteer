@@ -7,12 +7,15 @@
   "author": "Sayuru De Alwis",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.654.0",
     "@sparticuz/chromium": "^123.0.1",
-    "puppeteer-core": "^22.6.5",
-    "dotenv": "^16.4.5"
+    "aws-sdk": "^2.1691.0",
+    "dotenv": "^16.4.5",
+    "puppeteer-core": "^22.6.5"
   },
   "devDependencies": {
     "chai": "^4.2.0",
-    "mocha": "^6.1.4"
+    "glob": "^11.0.0",
+    "mocha": "^10.7.3"
   }
 }
