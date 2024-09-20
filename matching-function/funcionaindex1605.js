@@ -1,11 +1,9 @@
 // Import necessary AWS SDK clients
 const { DynamoDBClient, ScanCommand } = require('@aws-sdk/client-dynamodb');
-const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses'); // Import SES client
-const { SNSClient, PublishCommand } = require('@aws-sdk/client-sns'); // Import SNS client (para SMS, se necessário)
+const { SNSClient, PublishCommand } = require('@aws-sdk/client-sns'); // Import SNS client
 
 // Initialize AWS SDK clients
 const dynamoClient = new DynamoDBClient({ region: 'sa-east-1' });
-const sesClient = new SESClient({ region: 'sa-east-1' }); // Initialize SES client
 const snsClient = new SNSClient({ region: 'sa-east-1' }); // Initialize SNS client
 
 exports.handler = async (event) => {
@@ -136,23 +134,18 @@ function checkForMatches(user, publicationData, todosNomes, publicationKeywords)
   }
 
   // Verificar correspondências no tipo de decisão
-  let decisionMatch = false;
   if (userDecisionTypes.length > 0 && publicationData.tipoDecisao) {
     const tipoDecisaoNormalizado = removeSpecialCharacters(publicationData.tipoDecisao.toLowerCase());
     for (const decisionType of userDecisionTypes) {
       if (tipoDecisaoNormalizado.includes(decisionType)) {
         console.log(`Decision type match for user ${userId}: ${decisionType}`);
         matchedFields.push(`Decision Type: "${decisionType.toUpperCase()}"`);
-        decisionMatch = true;
         break;
       }
     }
-  } else {
-    // Se o usuário não especificou tipos de decisão, considerar como match
-    decisionMatch = true;
   }
 
-  const matchFound = matchedFields.length > 0 && decisionMatch;
+  const matchFound = matchedFields.length > 0;
 
   return { matchFound, matchedFields };
 }
@@ -161,28 +154,19 @@ function checkForMatches(user, publicationData, todosNomes, publicationKeywords)
 async function sendNotification(user, publicationData, matchedFields) {
   const contactMethod = user.contactMethod.S;
   const phoneNumber = user.phoneNumber?.S || null;
-  const emailAddress = user.emailAddress?.S || null; // Novo campo para email
   const userName = user.userName ? user.userName.S : 'Usuário'; // Recuperar o nome do usuário, se disponível
 
   const detectionTime = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }); // Ajuste o fuso horário conforme necessário
 
-  const message = `Olá ${userName}! 😄
-
-Acabei de dar uma olhada rápida às ${detectionTime} e, adivinha? Encontrei uma publicação que você estava esperando:
-
-📌 **Número da Publicação:** ${publicationData.numeroPublicacao}
-📅 **Data:** ${publicationData.dataPublicacao}
-⚖️ **Tipo de Decisão:** ${publicationData.tipoDecisao}
-📝 **Conteúdo:** ${publicationData.textoPublicacao}
-
-🔍 **O que chamou sua atenção:**
-${matchedFields.map(field => `- ${field}`).join('\n')}
-
-Parece que alguém estava realmente querendo que você soubesse disso! 😉 Não se preocupe, estou sempre de olho para você.
-
-Abraços virtuais,
-Seu Amigo de Notificações 📡
-`;
+  const message = `Olá ${userName}!\n\n` +
+                  `Nova publicação detectada às ${detectionTime} que corresponde às suas preferências:\n\n` +
+                  `Número da Publicação: ${publicationData.numeroPublicacao}\n` +
+                  `Data: ${publicationData.dataPublicacao}\n` +
+                  `Tipo de Decisão: ${publicationData.tipoDecisao}\n` +
+                  `Conteúdo: ${publicationData.textoPublicacao}\n\n` +
+                  `Preferências Correspondidas:\n` +
+                  `${matchedFields.map(field => `- ${field}`).join('\n')}\n\n` +
+                  `Atenciosamente,\nSeu robô de notificações`;
 
   if (contactMethod === 'sms') {
     if (!phoneNumber) {
@@ -203,56 +187,9 @@ Seu Amigo de Notificações 📡
       console.error(`Erro ao enviar SMS para ${phoneNumber}:`, err);
     }
   } else if (contactMethod === 'email') {
-    if (!emailAddress) {
-      console.error(`Nenhum endereço de email fornecido para o usuário ${user.userId.S}`);
-      return;
-    }
-
-    // Enviar Email via SES
-    const emailParams = {
-      Destination: {
-        ToAddresses: [emailAddress],
-      },
-      Message: {
-        Body: {
-          Html: {
-            Charset: "UTF-8",
-            Data: `<p>Olá ${userName}! 😄</p>
-
-<p>Acabei de dar uma olhada rápida às ${detectionTime} e, adivinha? Encontrei uma publicação que você estava esperando:</p>
-
-<p><strong>Número da Publicação:</strong> ${publicationData.numeroPublicacao}<br>
-<strong>Data:</strong> ${publicationData.dataPublicacao}<br>
-<strong>Tipo de Decisão:</strong> ${publicationData.tipoDecisao}<br>
-<strong>Conteúdo:</strong> ${publicationData.textoPublicacao}</p>
-
-<p><strong>O que chamou sua atenção:</strong><br>
-${matchedFields.map(field => `- ${field}`).join('<br>')}</p>
-
-<p>Parece que alguém estava realmente querendo que você soubesse disso! 😉 Não se preocupe, estou sempre de olho para você.</p>
-
-<p>Abraços virtuais,<br>
-Seu Amigo de Notificações 📡</p>`,
-          },
-          Text: {
-            Charset: "UTF-8",
-            Data: message.replace(/\n/g, "\n"),
-          },
-        },
-        Subject: {
-          Charset: 'UTF-8',
-          Data: `Nova Publicação: ${publicationData.numeroPublicacao}`,
-        },
-      },
-      Source: 'seu-email@dominio.com', // Substitua pelo seu email verificado no SES
-    };
-
-    try {
-      await sesClient.send(new SendEmailCommand(emailParams));
-      console.log(`Email enviado para ${emailAddress}`);
-    } catch (err) {
-      console.error(`Erro ao enviar Email para ${emailAddress}:`, err);
-    }
+    // Lógica de envio de email (se desejar manter notificações por email)
+    // Para simplicidade, você pode remover este bloco else-if se não estiver usando email
+    console.log(`Notificações por email não estão configuradas.`);
   } else {
     console.log(`Método de contato não suportado para o usuário ${user.userId.S}: ${contactMethod}`);
   }
